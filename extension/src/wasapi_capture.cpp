@@ -109,7 +109,7 @@ void WASAPICapture::Initialize() {
 	ResetEvent(receiveSignal);
 
 	const WORD channelCount = 2;
-	const DWORD samplesPerSecond = 44100; // godot internal
+	const DWORD samplesPerSecond = 48000; // godot internal
 	constexpr WORD bitsPerSample = 32; // float bits
 	const WORD blockAlign = channelCount * bitsPerSample / 8;
 

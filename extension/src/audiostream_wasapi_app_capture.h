@@ -12,6 +12,7 @@
 #include <godot_cpp/classes/resource.hpp>
 #include <godot_cpp/classes/audio_stream.hpp>
 #include <godot_cpp/classes/audio_stream_playback.hpp>
+#include <godot_cpp/classes/audio_stream_playback_resampled.hpp>
 #include <godot_cpp/variant/string.hpp>
 
 // Required as per https://github.com/godotengine/godot-cpp/issues/1207
@@ -50,7 +51,7 @@ public:
 
     class CircularBuffer {
     public:
-        CircularBuffer(size_t bufferSize) : bufferMutex { }, bufferSize { bufferSize }, readCursor { 0 }, writeCursor { 0 } {
+        CircularBuffer(size_t bufferSize) : bufferMutex { }, bufferSize { bufferSize }, readCursor { 0 }, writeCursor { 0 }, samplesReadable { 0 } {
             buffer = new float[bufferSize];
         }
 
@@ -59,7 +60,10 @@ public:
             buffer = nullptr;
         }
 
-        void Read(float* samps, size_t nSamps) {
+        size_t Read(float* samps, size_t nSamps) {
+            if(nSamps > samplesReadable) nSamps = samplesReadable;
+            if(nSamps == 0) return 0;
+
             bufferMutex.lock();
             if(readCursor + nSamps <= bufferSize) {
                 memcpy(samps, buffer + readCursor, nSamps * sizeof(float));
@@ -70,6 +74,8 @@ public:
             }
             readCursor = (readCursor + nSamps) % bufferSize;
             bufferMutex.unlock();
+
+            return nSamps;
         }
 
         void Write(float* samps, size_t nSamps) {
@@ -82,6 +88,8 @@ public:
                 memcpy(buffer, samps + copied, (nSamps -  copied) * sizeof(float));
             }
             writeCursor = (writeCursor + nSamps) % bufferSize;
+            samplesReadable += nSamps;
+            if(samplesReadable > bufferSize) samplesReadable = bufferSize;
             bufferMutex.unlock();
         }
 
@@ -91,6 +99,7 @@ public:
         size_t bufferSize;
         size_t readCursor;
         size_t writeCursor;
+        size_t samplesReadable;
     } audioBuffer;
 
 protected:
@@ -102,8 +111,8 @@ private:
     String target_app_name;
 };
 
-class AudioStreamPlaybackWasapiAppCapture : public AudioStreamPlayback {
-    GDCLASS(AudioStreamPlaybackWasapiAppCapture, AudioStreamPlayback)
+class AudioStreamPlaybackWasapiAppCapture : public AudioStreamPlaybackResampled {
+    GDCLASS(AudioStreamPlaybackWasapiAppCapture, AudioStreamPlaybackResampled)
     friend class AudioStreamWasapiAppCapture;
 
 private:
@@ -121,7 +130,8 @@ public:
      *  Since AudioStreamPlayback is controlled by the audio thread,
      *  i/o and dynamic memory allocation are forbidden."
     */
-    int32_t _mix(AudioFrame *buffer, double rate_scale, int32_t frames) override;
+    int32_t _mix_resampled(AudioFrame *dst_buffer, int32_t frame_count) override;
+    double _get_stream_sampling_rate() const override;
 
     bool _is_playing() const override;
     void _start(double from_pos) override;

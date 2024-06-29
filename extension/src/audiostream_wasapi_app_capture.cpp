@@ -13,8 +13,8 @@
 #include <wrl/implements.h>
 
 enum {
-    // Native Godot sample rate (use AudioStreamPlaybackResampled for other values)
-    MIX_RATE=44100,
+    // TODO: get this from wasapi
+    MIX_RATE=48000,
     // A buffer of about 93ms (at 44100 mix rate)
     PCM_BUFFER_SIZE = 4096,
     // TODO Document this (see core implementations). Note that 4096=2^13
@@ -61,7 +61,7 @@ HWND findWindowByExeName(std::string targetExeName) {
 }
 
 AudioStreamWasapiAppCapture::AudioStreamWasapiAppCapture()
-    : mix_rate(MIX_RATE), audioBuffer { 2048 } {
+    : mix_rate(MIX_RATE), audioBuffer { PCM_BUFFER_SIZE } {
     auto hwnd = findWindowByExeName("Spotify.exe");
     DWORD pid;
     GetWindowThreadProcessId(hwnd, &pid);
@@ -134,7 +134,7 @@ bool AudioStreamPlaybackWasapiAppCapture::_is_playing() const {
     return active;
 }
 
-int32_t AudioStreamPlaybackWasapiAppCapture::_mix(AudioFrame *buffer, double rate_scale, int32_t frames) {
+int32_t AudioStreamPlaybackWasapiAppCapture::_mix_resampled(AudioFrame *buffer, int32_t frames) {
     ERR_FAIL_COND_V(!active, 0);
 
     // TODO What is the max possible value for "frames"?
@@ -149,7 +149,10 @@ int32_t AudioStreamPlaybackWasapiAppCapture::_mix(AudioFrame *buffer, double rat
     //     float sample = float(buf[i]) / 32767.0;
     //     buffer[i] = { sample, sample };
     // }
-    audioStream->audioBuffer.Read(reinterpret_cast<float*>(buffer), frames * 2);
+    size_t read = audioStream->audioBuffer.Read(reinterpret_cast<float*>(buffer), frames * 2);
+    return read / 2;
+}
 
-    return frames;
+double AudioStreamPlaybackWasapiAppCapture::_get_stream_sampling_rate() const {
+    return MIX_RATE;
 }
