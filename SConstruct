@@ -14,19 +14,12 @@ env = SConscript("godot-cpp/SConstruct")
 
 # tweak this if you want to use different folders, or more folders, to store your source code in.
 env.Append(CPPPATH=["extension/src/"])
+env.Append(LIBS=["mmdevapi.lib", "rtworkq.lib", "user32.lib"])
 sources = Glob("extension/src/*.cpp")
 
-if env["platform"] == "macos":
-    library = env.SharedLibrary(
-        "game/bin/libgdcustomaudiostream.{}.{}.framework/libgdcustomaudiostream.{}.{}".format(
-            env["platform"], env["target"], env["platform"], env["target"]
-        ),
-        source=sources,
-    )
-else:
-    library = env.SharedLibrary(
-        "game/bin/libgdcustomaudiostream{}{}".format(env["suffix"], env["SHLIBSUFFIX"]),
-        source=sources,
-    )
+library = env.SharedLibrary(
+    "game/bin/libgdcustomaudiostream{}{}".format(env["suffix"], env["SHLIBSUFFIX"]),
+    source=sources
+)
 
 Default(library)

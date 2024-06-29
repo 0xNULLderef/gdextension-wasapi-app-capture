@@ -6,7 +6,8 @@
 #include <godot_cpp/core/defs.hpp>
 #include <godot_cpp/godot.hpp>
 
-#include "audiostream_simple.h"
+#include "audiostream_wasapi_app_capture.h"
+#include <RTWorkQ.h>
 
 using namespace godot;
 
@@ -16,8 +17,8 @@ void initialize_types(ModuleInitializationLevel p_level)
 		return;
 	}
 
-	ClassDB::register_class<AudioStreamSimple>();
-	ClassDB::register_class<AudioStreamPlaybackSimple>();
+	ClassDB::register_class<AudioStreamWasapiAppCapture>();
+	ClassDB::register_class<AudioStreamPlaybackWasapiAppCapture>();
 }
 
 void uninitialize_types(ModuleInitializationLevel p_level) {
@@ -28,10 +29,13 @@ void uninitialize_types(ModuleInitializationLevel p_level) {
 
 extern "C"
 {
-
 	// Initialization.
 
 	GDExtensionBool GDE_EXPORT library_init(GDExtensionInterfaceGetProcAddress p_get_proc_address, GDExtensionClassLibraryPtr p_library, GDExtensionInitialization *r_initialization) {
+		// make sure com and rtwq inited :skull:
+		CoInitializeEx(0, COINIT_MULTITHREADED);
+		RtwqStartup();
+		
 		GDExtensionBinding::InitObject init_obj(p_get_proc_address, p_library, r_initialization);
 
 		init_obj.register_initializer(initialize_types);
