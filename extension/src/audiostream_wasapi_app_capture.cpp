@@ -149,7 +149,7 @@ int32_t AudioStreamPlaybackWasapiAppCapture::_mix(AudioFrame *buffer, double rat
     //     float sample = float(buf[i]) / 32767.0;
     //     buffer[i] = { sample, sample };
     // }
-    audioStream->audioBuffer.Read(reinterpret_cast<float*>(buffer), frames);
+    audioStream->audioBuffer.Read(reinterpret_cast<float*>(buffer), frames * 2);
 
     return frames;
 }
